@@ -39,6 +39,12 @@ Route::get('register', [AuthController::class, 'registration'])->name('register'
 Route::post('register', [RegisteredUserController::class, 'store']);
 Route::post('login', [AuthenticatedSessionController::class, 'store']);
 
+//social media
+Route::get('github_signin', [AuthController::class, 'loginWithGithub'])->name('github_login');
+Route::get('auth/github/callback',  [AuthController::class, 'githubCallback']);
+Route::get('google_signin', [AuthController::class, 'loginWithGoogle'])->name('google_login');
+Route::get('auth/google/callback',  [AuthController::class, 'googleCallback']);
+
 Route::post('logout', [AuthController::class, 'signOut'])->name('logout');
 
 Route::get('/dashboard', function () {

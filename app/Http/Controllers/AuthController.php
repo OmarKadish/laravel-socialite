@@ -3,10 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Str;
+use Laravel\Socialite\Facades\Socialite;
 
 class AuthController extends Controller
 {
@@ -15,41 +18,58 @@ class AuthController extends Controller
         return view('auth.login');
     }
 
-    public function customLogin(Request $request)
-    {
-        $request->validate([
-            'email' => 'required',
-            'password' => 'required',
-        ]);
-
-        $credentials = $request->only('email', 'password');
-        if (Auth::attempt($credentials)) {
-            return redirect()->intended('dashboard')
-                ->withSuccess('Signed in');
-        }
-
-        return redirect("login")->withSuccess('Login details are not valid');
-    }
-
     public function registration()
     {
         return view('auth.register');
     }
 
-    public function customRegistration(Request $request)
+    public function loginWithGithub()
     {
-        $request->validate([
-            'name' => 'required',
-            'email' => 'required|email|unique:users',
-            'password' => 'required|min:6',
-        ]);
-
-        $data = $request->all();
-        $check = $this->create($data);
-
-        return redirect("dashboard")->withSuccess('You have signed-in');
+        return Socialite::driver('github')->redirect();
     }
 
+    public function githubCallback()
+    {
+        $githubUser = Socialite::driver('github')->user();
+
+        $user = User::updateOrCreate([
+            'email' => $githubUser->email,
+        ], [
+            'github_id' => $githubUser->id,
+            'name' => $githubUser->name,
+            'password' => Hash::make(Str::random(24)),
+//            'github_token' => $githubUser->token,
+//        'github_refresh_token' => $githubUser->refreshToken,
+        ]);
+
+        event(new Registered($user));
+        Auth::login($user);
+        return redirect('/dashboard');
+    }
+
+    public function loginWithGoogle()
+    {
+        return Socialite::driver('google')->redirect();
+    }
+
+    public function googleCallback()
+    {
+        $googleUser = Socialite::driver('google')->user();
+
+        $user = User::updateOrCreate([
+            'email' => $googleUser->email,
+        ], [
+            'google_id' => $googleUser->id,
+            'name' => $googleUser->name,
+            'password' => Hash::make(Str::random(24)),
+//            'github_token' => $githubUser->token,
+//        'github_refresh_token' => $githubUser->refreshToken,
+        ]);
+
+        event(new Registered($user));
+        Auth::login($user);
+        return redirect('/dashboard');
+    }
     public function dashboard()
     {
         if(Auth::check()){
